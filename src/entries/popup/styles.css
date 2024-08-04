@@ -1,0 +1,34 @@
+:root {
+    --bg: #333742;
+    --bg-dark: #424651;
+    --bg-light: #474c55;
+    --bg-dark3: #262a32;
+    --bg-blue: #5173ca;
+}
+
+.btn {
+    background-color: var(--bg-dark);
+    color: white;
+    border: none;
+    border-radius: 0.25rem;
+    font-weight: bold;
+    padding: 0.5rem;
+    cursor: default;
+    margin: 0.25rem;
+}
+
+.btn:hover {
+    background-color: var(--bg-light);
+}
+
+input {
+    background-color: var(--bg-dark3);
+    color: white;
+    border: solid 1px white;
+    border-radius: 0.25rem;
+    padding: 0.25rem;
+}
+.icon {
+    height: 1rem;
+    color: white;
+}
