@@ -1,10 +1,38 @@
 <script lang="ts">
+    import browser from "webextension-polyfill";
     import Edit from "./svg/Edit.svelte";
     import Close from "./svg/Close.svelte";
+    import Accept from "./svg/Accept.svelte";
 
     export let workspace: string;
     export let active: boolean;
-    export let switchWorkspace: (workspace: string) => void;
+    export let getWorkspaces: () => void;
+
+    let showForm = false;
+    let newWorkspaceName = workspace;
+
+    function switchWorkspace(workspace: string) {
+        browser.runtime.sendMessage({ action: "switchWorkspace", name: workspace }).then(() => {});
+        getWorkspaces();
+    }
+
+    function deleteWorkspace(name: string) {
+        browser.runtime.sendMessage({ action: "deleteWorkspace", name: name }).then(() => {});
+        getWorkspaces();
+    }
+
+    function renameWorkspace(oldName: string, newName: string) {
+        browser.runtime
+            .sendMessage({ action: "renameWorkspace", oldName: oldName, newName: newName })
+            .then(() => {
+                getWorkspaces();
+            });
+        showForm = false;
+    }
+
+    function focus(el: HTMLElement) {
+        el.focus();
+    }
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -13,25 +41,42 @@
     on:click={() => switchWorkspace(workspace)}
     class="workspace flex-centered {active ? 'active' : ''}"
 >
-    <span class="workspace-name">
-        {workspace}
-    </span>
-    <button
-        on:click|stopPropagation={() => {
-            console.log("click");
-        }}
-        class="icon-btn"
-    >
-        <Edit />
-    </button>
-    <button
-        on:click|stopPropagation={() => {
-            console.log("click");
-        }}
-        class="icon-btn"
-    >
-        <Close />
-    </button>
+    {#if !showForm}
+        <span class="flex-grow">
+            {workspace}
+        </span>
+        {#if workspace !== "default"}
+            <button
+                on:click|stopPropagation={() => (showForm = true)}
+                class="icon-btn show-on-hover"
+            >
+                <Edit />
+            </button>
+
+            <button
+                on:click|stopPropagation={() => {
+                    deleteWorkspace(workspace);
+                }}
+                class="icon-btn show-on-hover"
+            >
+                <Close />
+            </button>
+        {/if}
+    {:else}
+        <input type="text" bind:value={newWorkspaceName} class="flex-grow" use:focus />
+
+        <button
+            type="submit"
+            on:click|stopPropagation={() => renameWorkspace(workspace, newWorkspaceName)}
+            class="icon-btn"
+        >
+            <Accept />
+        </button>
+
+        <button on:click|stopPropagation={() => (showForm = false)} class="icon-btn">
+            <Close />
+        </button>
+    {/if}
 </div>
 
 <style>
@@ -40,6 +85,7 @@
     .flex-centered {
         display: flex;
         align-items: center;
+        gap: 0.25rem;
     }
 
     .workspace {
@@ -54,25 +100,31 @@
         background-color: var(--bg-light);
     }
 
-    .workspace.active {
-        background-color: var(--bg-blue);
+    .show-on-hover {
+        opacity: 0;
     }
 
-    .workspace-name {
+    .workspace:hover > .show-on-hover {
+        opacity: 100%;
+    }
+
+    .workspace.active {
+        background-color: var(--blue);
+    }
+
+    .flex-grow {
         flex-grow: 1;
     }
 
     .icon-btn {
-        fill: white;
-        stroke: white;
-        color: white;
-        border: solid 1px transparent;
+        border: 0;
         background-color: transparent;
+        border-radius: 0.25rem;
+        padding: 0.25rem;
+        aspect-ratio: 1;
     }
 
     .icon-btn:hover {
-        /* background-color: var(--bg-dark2); */
-        border-radius: 0.25rem;
-        border: solid 1px var(--bg-light);
+        background-color: var(--bg);
     }
 </style>

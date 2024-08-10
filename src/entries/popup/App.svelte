@@ -15,16 +15,10 @@
             if (response) {
                 workspaces = response.workspaces;
                 currentWorkspace = response.currentWorkspace;
-                console.log(JSON.stringify(workspaces));
             } else {
                 console.error("Failed to get response for 'getWorkspaces' message");
             }
         });
-    }
-
-    function switchWorkspace(workspace: string) {
-        browser.runtime.sendMessage({ action: "switchWorkspace", name: workspace }).then(() => {});
-        getWorkspaces();
     }
 
     function createWorkspace() {
@@ -33,19 +27,24 @@
             .sendMessage({ action: "createWorkspace", name: newWorkspaceName })
             .then(() => {});
         getWorkspaces();
+        newWorkspaceName = "";
+    }
+
+    function focus(el: HTMLElement) {
+        el.focus();
     }
 
     onMount(getWorkspaces);
 </script>
 
 <main>
-    <div id="workspaces">
+    <div>
         {#if currentWorkspace}
             {#key currentWorkspace}
                 {#each Object.entries(workspaces) as [workspace, _]}
                     <WorkspaceItem
                         {workspace}
-                        {switchWorkspace}
+                        {getWorkspaces}
                         active={currentWorkspace === workspace}
                     />
                     {#if workspace === "default"}
@@ -55,27 +54,24 @@
             {/key}
         {/if}
     </div>
-    <div id="new-workspace-container">
+    <div>
         {#if !showForm}
             <button
                 on:click={() => {
                     showForm = true;
                 }}
-                id="new-workspace"
                 class="btn">New Workspace</button
             >
         {:else}
-            <div id="create-workspace-form">
+            <div>
                 <input
                     type="text"
-                    id="new-workspace-name"
                     placeholder="New Workspace"
                     bind:value={newWorkspaceName}
+                    use:focus
                 />
-                <button on:click={createWorkspace} id="create-workspace" class="btn">Create</button>
-                <button on:click={() => (showForm = false)} id="cancel-create-workspace" class="btn"
-                    >Cancel</button
-                >
+                <button on:click={createWorkspace} class="btn">Create</button>
+                <button on:click={() => (showForm = false)} class="btn">Cancel</button>
             </div>
         {/if}
     </div>

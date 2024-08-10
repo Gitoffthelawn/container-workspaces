@@ -3,7 +3,8 @@
     --bg-dark: #424651;
     --bg-light: #474c55;
     --bg-dark3: #262a32;
-    --bg-blue: #5173ca;
+    --blue: #5173ca;
+    --red: #a3464a;
 }
 
 .btn {
@@ -22,12 +23,17 @@
 }
 
 input {
+    all: unset;
     background-color: var(--bg-dark3);
     color: white;
-    border: solid 1px white;
     border-radius: 0.25rem;
     padding: 0.25rem;
 }
+
+input:focus {
+    border: solid 1px white;
+}
+
 .icon {
     height: 1rem;
     color: white;

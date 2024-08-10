@@ -1,9 +1,9 @@
 {
-    "name": "vite-web-extension",
+    "name": "workspaces",
     "version": "1.0.0",
-    "displayName": "Vite Web Extension",
+    "displayName": "Workspaces",
     "author": "@samrum/vite-plugin-web-extension",
-    "description": "A @samrum/vite-plugin-web-extension web extension",
+    "description": "Manage tab workspaces",
     "type": "module",
     "scripts": {
         "build": "vite build",

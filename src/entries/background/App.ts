@@ -82,6 +82,7 @@ export class App {
     }
 
     renameWorkspace(oldName: string, newName: string) {
+        console.log(`Changing workspace '${oldName}' to '${newName}'`);
         if (this.workspaces[oldName] && oldName !== newName) {
             const ws = this.workspaces[oldName];
             delete this.workspaces[oldName];
