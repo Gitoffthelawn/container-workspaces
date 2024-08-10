@@ -11,36 +11,57 @@
     let showForm = false;
     let newWorkspaceName = workspace;
 
-    function switchWorkspace(workspace: string) {
-        browser.runtime.sendMessage({ action: "switchWorkspace", name: workspace }).then(() => {});
-        getWorkspaces();
+    function switchWorkspace() {
+        browser.runtime.sendMessage({ action: "switchWorkspace", name: workspace }).then(() => {
+            getWorkspaces();
+        });
     }
 
-    function deleteWorkspace(name: string) {
-        browser.runtime.sendMessage({ action: "deleteWorkspace", name: name }).then(() => {});
-        getWorkspaces();
+    function deleteWorkspace() {
+        browser.runtime.sendMessage({ action: "deleteWorkspace", name: workspace }).then(() => {
+            getWorkspaces();
+        });
     }
 
-    function renameWorkspace(oldName: string, newName: string) {
+    function renameWorkspace() {
         browser.runtime
-            .sendMessage({ action: "renameWorkspace", oldName: oldName, newName: newName })
+            .sendMessage({
+                action: "renameWorkspace",
+                oldName: workspace,
+                newName: newWorkspaceName,
+            })
             .then(() => {
                 getWorkspaces();
+                showForm = false;
             });
-        showForm = false;
     }
 
     function focus(el: HTMLElement) {
         el.focus();
     }
+
+    function handle_keyup(event: KeyboardEvent) {
+        switch (event.key) {
+            case "Enter": {
+                if (showForm) {
+                    renameWorkspace();
+                }
+            }
+            case "Escape": {
+                showForm = false;
+                event.stopImmediatePropagation();
+                event.stopPropagation();
+                event.preventDefault();
+            }
+        }
+    }
 </script>
+
+<svelte:window on:keyup={handle_keyup} />
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->
 <!-- svelte-ignore a11y-no-static-element-interactions -->
-<div
-    on:click={() => switchWorkspace(workspace)}
-    class="workspace flex-centered {active ? 'active' : ''}"
->
+<div on:click={switchWorkspace} class="workspace flex-centered {active ? 'active' : ''}">
     {#if !showForm}
         <span class="flex-grow">
             {workspace}
@@ -53,23 +74,14 @@
                 <Edit />
             </button>
 
-            <button
-                on:click|stopPropagation={() => {
-                    deleteWorkspace(workspace);
-                }}
-                class="icon-btn show-on-hover"
-            >
+            <button on:click|stopPropagation={deleteWorkspace} class="icon-btn show-on-hover">
                 <Close />
             </button>
         {/if}
     {:else}
         <input type="text" bind:value={newWorkspaceName} class="flex-grow" use:focus />
 
-        <button
-            type="submit"
-            on:click|stopPropagation={() => renameWorkspace(workspace, newWorkspaceName)}
-            class="icon-btn"
-        >
+        <button type="submit" on:click|stopPropagation={renameWorkspace} class="icon-btn">
             <Accept />
         </button>
 
