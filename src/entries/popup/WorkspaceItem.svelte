@@ -1,94 +1,36 @@
 <script lang="ts">
     import browser from "webextension-polyfill";
     import Edit from "./svg/Edit.svelte";
-    import Close from "./svg/Close.svelte";
-    import Accept from "./svg/Accept.svelte";
 
-    export let workspace: string;
+    export let container: browser.ContextualIdentities.ContextualIdentity;
     export let active: boolean;
-    export let getWorkspaces: () => void;
+    export let getContainers: () => void;
 
     let showForm = false;
-    let newWorkspaceName = workspace;
 
     function switchWorkspace() {
-        browser.runtime.sendMessage({ action: "switchWorkspace", name: workspace }).then(() => {
-            getWorkspaces();
+        let name = active ? "firefox-default" : container.cookieStoreId;
+        browser.runtime.sendMessage({ action: "switchWorkspace", name: name }).then(() => {
+            getContainers();
         });
-    }
-
-    function deleteWorkspace() {
-        browser.runtime.sendMessage({ action: "deleteWorkspace", name: workspace }).then(() => {
-            getWorkspaces();
-        });
-    }
-
-    function renameWorkspace() {
-        browser.runtime
-            .sendMessage({
-                action: "renameWorkspace",
-                oldName: workspace,
-                newName: newWorkspaceName,
-            })
-            .then(() => {
-                getWorkspaces();
-                showForm = false;
-            });
-    }
-
-    function focus(el: HTMLElement) {
-        el.focus();
-    }
-
-    function handle_keyup(event: KeyboardEvent) {
-        switch (event.key) {
-            case "Enter": {
-                if (showForm) {
-                    renameWorkspace();
-                }
-            }
-            case "Escape": {
-                showForm = false;
-                event.stopImmediatePropagation();
-                event.stopPropagation();
-                event.preventDefault();
-            }
-        }
     }
 </script>
-
-<svelte:window on:keyup={handle_keyup} />
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->
 <!-- svelte-ignore a11y-no-static-element-interactions -->
 <div on:click={switchWorkspace} class="workspace flex-centered {active ? 'active' : ''}">
-    {#if !showForm}
-        <span class="flex-grow">
-            {workspace}
-        </span>
-        {#if workspace !== "default"}
-            <button
-                on:click|stopPropagation={() => (showForm = true)}
-                class="icon-btn show-on-hover"
-            >
-                <Edit />
-            </button>
-
-            <button on:click|stopPropagation={deleteWorkspace} class="icon-btn show-on-hover">
-                <Close />
-            </button>
-        {/if}
-    {:else}
-        <input type="text" bind:value={newWorkspaceName} class="flex-grow" use:focus />
-
-        <button type="submit" on:click|stopPropagation={renameWorkspace} class="icon-btn">
-            <Accept />
-        </button>
-
-        <button on:click|stopPropagation={() => (showForm = false)} class="icon-btn">
-            <Close />
-        </button>
-    {/if}
+    <img
+        src={container.iconUrl}
+        alt={container.icon}
+        style="fill: {container.colorCode}"
+        class="workspace-icon"
+    />
+    <span class="flex-grow">
+        {container.name}
+    </span>
+    <button on:click|stopPropagation={() => (showForm = true)} class="icon-btn show-on-hover">
+        <Edit />
+    </button>
 </div>
 
 <style>
@@ -138,5 +80,9 @@
 
     .icon-btn:hover {
         background-color: var(--bg);
+    }
+
+    .workspace-icon {
+        height: 24px;
     }
 </style>

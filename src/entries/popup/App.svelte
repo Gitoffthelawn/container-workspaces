@@ -1,22 +1,23 @@
 <script lang="ts">
     import browser from "webextension-polyfill";
-    import type { Workspace } from "../background/Workspace";
     import { onMount } from "svelte";
     import WorkspaceItem from "./WorkspaceItem.svelte";
 
     let newWorkspaceName: string;
     let showForm = false;
 
-    let workspaces: Record<string, Workspace>;
-    let currentWorkspace: string;
+    let containers: browser.ContextualIdentities.ContextualIdentity[];
+    $: containers = [];
+    $: currentWorkspace = "";
 
-    function getWorkspaces() {
-        browser.runtime.sendMessage({ action: "getWorkspaces" }).then((response) => {
+    function getContainers() {
+        browser.runtime.sendMessage({ action: "getContainers" }).then((response) => {
             if (response) {
-                workspaces = response.workspaces;
+                containers = response.containers;
+
                 currentWorkspace = response.currentWorkspace;
             } else {
-                console.error("Failed to get response for 'getWorkspaces' message");
+                console.error("Failed to get response for 'getContainers' message");
             }
         });
     }
@@ -26,7 +27,7 @@
         browser.runtime
             .sendMessage({ action: "createWorkspace", name: newWorkspaceName })
             .then(() => {});
-        getWorkspaces();
+        getContainers();
         newWorkspaceName = "";
     }
 
@@ -34,26 +35,21 @@
         el.focus();
     }
 
-    onMount(getWorkspaces);
+    onMount(getContainers);
 </script>
 
 <main>
+    <div>currentWorkspace: {currentWorkspace}</div>
     <div>
-        {#if currentWorkspace}
-            {#key currentWorkspace}
-                {#each Object.entries(workspaces) as [workspace, _]}
-                    <WorkspaceItem
-                        {workspace}
-                        {getWorkspaces}
-                        active={currentWorkspace === workspace}
-                    />
-                    {#if workspace === "default"}
-                        <hr />
-                    {/if}
-                {/each}
-            {/key}
-        {/if}
+        {#each containers as container}
+            <WorkspaceItem
+                {container}
+                active={currentWorkspace == container.cookieStoreId}
+                {getContainers}
+            />
+        {/each}
     </div>
+
     <div>
         {#if !showForm}
             <button
