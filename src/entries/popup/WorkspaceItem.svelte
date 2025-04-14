@@ -14,17 +14,21 @@
             getContainers();
         });
     }
+
+    console.log(container.iconUrl);
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->
 <!-- svelte-ignore a11y-no-static-element-interactions -->
 <div on:click={switchWorkspace} class="workspace flex-centered {active ? 'active' : ''}">
-    <img
-        src={container.iconUrl}
-        alt={container.icon}
-        style="fill: {container.colorCode}"
-        class="workspace-icon"
-    />
+    <div data-identity-icon={container.icon} data-identity-color={container.color}>
+        <img
+            src={container.iconUrl}
+            alt={container.icon}
+            style="color: {container.colorCode}"
+            class="workspace-icon"
+        />
+    </div>
     <span class="flex-grow">
         {container.name}
     </span>

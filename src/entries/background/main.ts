@@ -72,3 +72,15 @@ browser.tabs.onCreated.addListener((tab) => {
 	}
 	app.updateTabs();
 });
+
+browser.tabs.onRemoved.addListener(() => {
+	if (app.currentWorkspace) {
+		browser.tabs.query({ cookieStoreId: app.currentWorkspace }).then((tabs) => {
+			if (tabs.length == 0) {
+				console.log("tabs are zero");
+				app.currentWorkspace = "firefox-default";
+				app.updateTabs();
+			}
+		});
+	}
+});
