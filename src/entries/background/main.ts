@@ -52,7 +52,6 @@ browser.runtime.onMessage.addListener(async (message) => {
 		}
 		case "getContainers": {
 			const c = await browser.contextualIdentities.query({});
-			console.log(JSON.stringify(c));
 			return await Promise.resolve({
 				containers: c,
 				currentWorkspace: app.currentWorkspace,
@@ -62,16 +61,14 @@ browser.runtime.onMessage.addListener(async (message) => {
 	return Promise.resolve();
 });
 
-// browser.tabs.onCreated.addListener((tab) => {
-// 	if (app.currentWorkspace && tab.cookieStoreId != app.currentWorkspace) {
-// 		if (tab.id) {
-// 			browser.tabs.create({
-// 				cookieStoreId: app.currentWorkspace,
-// 				url: tab.url,
-// 			});
-// 			// .then((tab) => browser.tabs.update(tab.id, { active: true }));
-// 			browser.tabs.remove(tab.id);
-// 		}
-// 	}
-// 	app.updateTabs();
-// });
+browser.tabs.onCreated.addListener((tab) => {
+	if (app.currentWorkspace && tab.cookieStoreId != app.currentWorkspace) {
+		if (tab.id && tab.title == "New Tab") {
+			browser.tabs.create({
+				cookieStoreId: app.currentWorkspace,
+			});
+			browser.tabs.remove(tab.id);
+		}
+	}
+	app.updateTabs();
+});
