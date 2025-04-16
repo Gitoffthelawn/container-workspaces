@@ -3,73 +3,51 @@
     import { onMount } from "svelte";
     import WorkspaceItem from "./WorkspaceItem.svelte";
 
-    let newWorkspaceName: string;
-    let showForm = false;
-
     let containers: browser.ContextualIdentities.ContextualIdentity[];
+    let containerTabs: Record<string, number>;
     $: containers = [];
     $: currentWorkspace = "";
+    $: containerTabs = {};
+    $: totalTabs = Object.values(containerTabs).reduce((a, v) => a + v, 0);
+
+    $: theme = "dark";
+
+    const allWorkspace = {
+        name: "All",
+        cookieStoreId: undefined,
+    };
 
     function getContainers() {
         browser.runtime.sendMessage({ action: "getContainers" }).then((response) => {
             if (response) {
                 containers = response.containers;
-
                 currentWorkspace = response.currentWorkspace;
+                containerTabs = response.containerTabs;
             } else {
                 console.error("Failed to get response for 'getContainers' message");
             }
         });
     }
 
-    function createWorkspace() {
-        showForm = false;
-        browser.runtime
-            .sendMessage({ action: "createWorkspace", name: newWorkspaceName })
-            .then(() => {});
-        getContainers();
-        newWorkspaceName = "";
-    }
-
-    function focus(el: HTMLElement) {
-        el.focus();
-    }
-
     onMount(getContainers);
 </script>
 
-<main>
-    <div>currentWorkspace: {currentWorkspace}</div>
+<main data-theme="dark">
     <div>
+        <WorkspaceItem
+            container={allWorkspace}
+            active={currentWorkspace == allWorkspace.cookieStoreId}
+            {getContainers}
+            tabCount={totalTabs}
+        />
         {#each containers as container}
             <WorkspaceItem
                 {container}
                 active={currentWorkspace == container.cookieStoreId}
                 {getContainers}
+                tabCount={containerTabs[container.name]}
             />
         {/each}
-    </div>
-
-    <div>
-        {#if !showForm}
-            <button
-                on:click={() => {
-                    showForm = true;
-                }}
-                class="btn">New Workspace</button
-            >
-        {:else}
-            <div>
-                <input
-                    type="text"
-                    placeholder="New Workspace"
-                    bind:value={newWorkspaceName}
-                    use:focus
-                />
-                <button on:click={createWorkspace} class="btn">Create</button>
-                <button on:click={() => (showForm = false)} class="btn">Cancel</button>
-            </div>
-        {/if}
     </div>
 </main>
 
@@ -80,8 +58,6 @@
         min-width: 20rem;
         font-family: sans-serif;
         font-size: 0.9rem;
-        background-color: var(--bg);
-        color: white;
         padding: 0.25rem;
     }
 </style>

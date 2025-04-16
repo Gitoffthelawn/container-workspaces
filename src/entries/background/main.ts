@@ -51,10 +51,26 @@ browser.runtime.onMessage.addListener(async (message) => {
 			break;
 		}
 		case "getContainers": {
-			const c = await browser.contextualIdentities.query({});
+			const defaultContainer: browser.ContextualIdentities.ContextualIdentity =
+				{
+					name: "Default",
+					cookieStoreId: "firefox-default",
+				};
+			let containers = await browser.contextualIdentities.query({});
+			containers.unshift(defaultContainer);
+			const tabs = await browser.tabs.query({});
+			const containerTabs: Record<string, number> = {};
+			containers.forEach((c) => {
+				const tabCount = tabs.filter(
+					(t) => t.cookieStoreId == c.cookieStoreId,
+				).length;
+				containerTabs[c.name] = tabCount;
+			});
+
 			return await Promise.resolve({
-				containers: c,
+				containers,
 				currentWorkspace: app.currentWorkspace,
+				containerTabs,
 			});
 		}
 	}
@@ -77,7 +93,6 @@ browser.tabs.onRemoved.addListener(() => {
 	if (app.currentWorkspace) {
 		browser.tabs.query({ cookieStoreId: app.currentWorkspace }).then((tabs) => {
 			if (tabs.length == 0) {
-				console.log("tabs are zero");
 				app.currentWorkspace = "firefox-default";
 				app.updateTabs();
 			}

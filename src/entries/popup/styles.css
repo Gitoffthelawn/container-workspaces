@@ -1,40 +1,38 @@
-:root {
-    --bg: #333742;
-    --bg-dark: #424651;
-    --bg-light: #474c55;
-    --bg-dark3: #262a32;
-    --blue: #5173ca;
-    --red: #a3464a;
+@import url("theme.css");
+
+main {
+	background-color: var(--bgColor);
+	color: var(--text-color-primary);
 }
 
 .btn {
-    background-color: var(--bg-dark);
-    color: white;
-    border: none;
-    border-radius: 0.25rem;
-    font-weight: bold;
-    padding: 0.5rem;
-    cursor: default;
-    margin: 0.25rem;
+	background-color: var(--bgDark);
+	color: white;
+	border: none;
+	border-radius: 0.25rem;
+	font-weight: bold;
+	padding: 0.5rem;
+	cursor: default;
+	margin: 0.25rem;
 }
 
 .btn:hover {
-    background-color: var(--bg-light);
+	background-color: var(--button-bg-active-color-secondary);
 }
 
 input {
-    all: unset;
-    background-color: var(--bg-dark3);
-    color: white;
-    border-radius: 0.25rem;
-    padding: 0.25rem;
+	all: unset;
+	background-color: var(--input-bg-color);
+	color: white;
+	border-radius: 0.25rem;
+	padding: 0.25rem;
 }
 
 input:focus {
-    border: solid 1px white;
+	border: solid 1px white;
 }
 
 .icon {
-    height: 1rem;
-    color: white;
+	height: 1rem;
+	color: white;
 }

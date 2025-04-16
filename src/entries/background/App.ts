@@ -1,7 +1,7 @@
 import browser from "webextension-polyfill";
 
 export class App {
-	currentWorkspace: string;
+	currentWorkspace: string | undefined;
 
 	constructor() {
 		this.currentWorkspace = "firefox-default";
@@ -26,7 +26,7 @@ export class App {
 		browser.tabs.query({}).then((tabs) => {
 			tabs.forEach((t) => {
 				if (t.id) {
-					if (this.currentWorkspace == "firefox-default") {
+					if (!this.currentWorkspace) {
 						browser.tabs.show(t.id);
 						return;
 					}
@@ -42,23 +42,42 @@ export class App {
 	}
 
 	switchWorkspace(cookieStoreId: string | undefined) {
-		if (!cookieStoreId) {
-			cookieStoreId = "firefox-default";
-		}
-		browser.tabs.query({ cookieStoreId: cookieStoreId }).then((tabs) => {
-			if (tabs.length > 0) {
-				const nextActiveTab = tabs[0].id;
-				browser.tabs
-					.update(nextActiveTab, {
-						active: true,
-					})
-					.then(() => {
-						this.updateTabs();
-					});
-			} else {
-				browser.tabs.create({ cookieStoreId });
-				this.updateTabs();
-			}
+		// Handle selecting an active tab when switching workspaces
+		browser.tabs.query({ active: true }).then((activeTabs) => {
+			browser.tabs.query({ cookieStoreId: cookieStoreId }).then((tabs) => {
+				// No need to select a tab when unsetting a workspace or if the current active tab is already in the newly selected workspace
+				if (
+					!cookieStoreId ||
+					(activeTabs.length > 0 &&
+						activeTabs[0].cookieStoreId == cookieStoreId)
+				) {
+					this.updateTabs();
+					return;
+				}
+
+				if (tabs.length > 0) {
+					const mostRecentTab = tabs.reduce((mostRecent, current) => {
+						if (!current.lastAccessed || !mostRecent.lastAccessed) {
+							return mostRecent;
+						}
+						if (!mostRecent || current.lastAccessed > mostRecent.lastAccessed) {
+							return current;
+						}
+						return mostRecent;
+					}, tabs[0]);
+
+					browser.tabs
+						.update(mostRecentTab.id, {
+							active: true,
+						})
+						.then(() => {
+							this.updateTabs();
+						});
+				} else {
+					browser.tabs.create({ cookieStoreId });
+					this.updateTabs();
+				}
+			});
 		});
 
 		this.currentWorkspace = cookieStoreId;
