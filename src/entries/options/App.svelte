@@ -10,9 +10,11 @@
     }
 
     onMount(() => {
-        browser.storage.local
-            .get("currentTheme")
-            .then((data) => (currentTheme = data.currentTheme));
+        browser.storage.local.get("currentTheme").then((data) => {
+            if (data.currentTheme) {
+                currentTheme = data.currentTheme;
+            }
+        });
     });
 </script>
 
@@ -29,9 +31,9 @@
                     on:change={selectTheme}
                     bind:value={currentTheme}
                 >
-                    <option value="auto" selected data-i18n-message-id="themeAuto">Auto</option>
-                    <option value="light" data-i18n-message-id="themeLight">Light</option>
-                    <option value="dark" data-i18n-message-id="themeDark">Dark</option>
+                    <option value="auto">Auto</option>
+                    <option value="light">Light</option>
+                    <option value="dark">Dark</option>
                 </select>
             </label>
         </p>

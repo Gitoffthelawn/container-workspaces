@@ -66,6 +66,14 @@ const ManifestV3 = {
 	host_permissions: ["*://*/*"],
 };
 
+const extensionID = {
+	browser_specific_settings: {
+		gecko: {
+			id: "container-workspaces@mike.lloyd",
+		},
+	},
+};
+
 export function getManifest(
 	manifestVersion: number,
 ): chrome.runtime.ManifestV2 | chrome.runtime.ManifestV3 {
@@ -80,6 +88,7 @@ export function getManifest(
 		return {
 			...manifest,
 			...ManifestV2,
+			...extensionID,
 			manifest_version: manifestVersion,
 		};
 	}
@@ -88,6 +97,7 @@ export function getManifest(
 		return {
 			...manifest,
 			...ManifestV3,
+			...extensionID,
 			manifest_version: manifestVersion,
 		};
 	}

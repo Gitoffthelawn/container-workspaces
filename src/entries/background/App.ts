@@ -4,7 +4,7 @@ export class App {
 	currentWorkspace: string | undefined;
 
 	constructor() {
-		this.currentWorkspace = "firefox-default";
+		this.currentWorkspace = undefined;
 	}
 
 	// Loads the workspace states from browser storage

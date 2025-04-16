@@ -1,17 +1,19 @@
 {
 	"name": "workspaces",
 	"version": "1.0.0",
-	"displayName": "Workspaces",
+	"displayName": "Container Workspaces",
 	"author": "Mike Lloyd",
-	"description": "Manage container workspaces",
+	"description": "Manage container tabs in workspaces",
 	"type": "module",
 	"scripts": {
 		"build": "vite build",
 		"watch": "vite build --watch --mode development --minify false",
 		"dev": "vite",
-		"serve:firefox": "web-ext run --start-url \"about:debugging#/runtime/this-firefox\"  --source-dir ./dist/",
-		"serve:chrome": "web-ext run -t chromium --start-url \"https://example.com\" --source-dir ./dist/",
-		"check": "svelte-check --tsconfig ./tsconfig.json"
+		"serve:firefox": "web-ext run --start-url \"about:debugging#/runtime/this-firefox\"",
+		"serve:chrome": "web-ext run -t chromium --start-url \"https://example.com\"",
+		"check": "svelte-check --tsconfig ./tsconfig.json",
+		"package": "web-ext build",
+		"sign": "web-ext sign --api-key $JWT_ISSUER --api-secret $JWT_SECRET"
 	},
 	"license": "MIT",
 	"devDependencies": {
@@ -32,5 +34,12 @@
 	},
 	"dependencies": {
 		"webextension-polyfill": "^0.10.0"
+	},
+	"webExt": {
+		"sourceDir": "./dist",
+		"sign": {
+			"channel": "listed",
+			"useSubmissionApi": true
+		}
 	}
 }
