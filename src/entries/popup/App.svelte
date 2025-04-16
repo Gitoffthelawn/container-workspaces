@@ -29,10 +29,23 @@
         });
     }
 
-    onMount(getContainers);
+    onMount(() => {
+        getContainers();
+        browser.storage.local.get("currentTheme").then((data) => {
+            if (data.currentTheme == "auto") {
+                if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+                    theme = "dark";
+                } else {
+                    theme = "light";
+                }
+            } else {
+                theme = data.currentTheme;
+            }
+        });
+    });
 </script>
 
-<main data-theme="dark">
+<main data-theme={theme}>
     <div>
         <WorkspaceItem
             container={allWorkspace}

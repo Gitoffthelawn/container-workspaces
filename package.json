@@ -2,8 +2,8 @@
 	"name": "workspaces",
 	"version": "1.0.0",
 	"displayName": "Workspaces",
-	"author": "@samrum/vite-plugin-web-extension",
-	"description": "Manage tab workspaces",
+	"author": "Mike Lloyd",
+	"description": "Manage container workspaces",
 	"type": "module",
 	"scripts": {
 		"build": "vite build",

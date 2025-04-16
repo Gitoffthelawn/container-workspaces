@@ -21,7 +21,7 @@ const sharedManifest: Partial<chrome.runtime.ManifestBase> = {
 	},
 	options_ui: {
 		page: "src/entries/options/index.html",
-		open_in_tab: true,
+		chrome_style: true,
 	},
 	permissions: [
 		"tabs",
