@@ -38,7 +38,7 @@
                 } else {
                     theme = "light";
                 }
-            } else {
+            } else if (data.currentTheme) {
                 theme = data.currentTheme;
             }
         });

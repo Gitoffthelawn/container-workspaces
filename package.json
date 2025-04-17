@@ -1,6 +1,6 @@
 {
 	"name": "workspaces",
-	"version": "1.0.0",
+	"version": "1.0.2",
 	"displayName": "Container Workspaces",
 	"author": "Mike Lloyd",
 	"description": "Manage container tabs in workspaces",
@@ -38,8 +38,7 @@
 	"webExt": {
 		"sourceDir": "./dist",
 		"sign": {
-			"channel": "listed",
-			"useSubmissionApi": true
+			"channel": "listed"
 		}
 	}
 }

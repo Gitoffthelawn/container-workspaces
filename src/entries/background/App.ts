@@ -10,7 +10,7 @@ export class App {
 	// Loads the workspace states from browser storage
 	loadFromStorage() {
 		browser.storage.local.get(["currentWorkspace"]).then((data) => {
-			this.currentWorkspace = data.currentWorkspace || "firefox-default";
+			this.currentWorkspace = data.currentWorkspace;
 
 			this.updateTabs();
 		});

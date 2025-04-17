@@ -20,11 +20,10 @@
 
 <main>
     <form>
-        <h3>Theme</h3>
-
-        <p>
+        <h3>Options</h3>
+        <div>
             <label class="keyboard-shortcut">
-                <span></span>
+                <span>Theme</span>
                 <select
                     id="changeTheme"
                     name="changeTheme"
@@ -36,18 +35,10 @@
                     <option value="dark">Dark</option>
                 </select>
             </label>
-        </p>
+        </div>
     </form>
 </main>
 
 <style>
     @import "./styles.css";
-
-    /* main { */
-    /*     font-family: Avenir, Helvetica, Arial, sans-serif; */
-    /*     -webkit-font-smoothing: antialiased; */
-    /*     -moz-osx-font-smoothing: grayscale; */
-    /*     text-align: center; */
-    /*     color: #2c3e50; */
-    /* } */
 </style>
