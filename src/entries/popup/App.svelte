@@ -1,79 +1,66 @@
 <script lang="ts">
     import browser from "webextension-polyfill";
-    import type { Workspace } from "../background/Workspace";
     import { onMount } from "svelte";
     import WorkspaceItem from "./WorkspaceItem.svelte";
 
-    let newWorkspaceName: string;
-    let showForm = false;
+    let containers: browser.ContextualIdentities.ContextualIdentity[];
+    let containerTabs: Record<string, number>;
+    $: containers = [];
+    $: currentWorkspace = "";
+    $: containerTabs = {};
+    $: totalTabs = Object.values(containerTabs).reduce((a, v) => a + v, 0);
 
-    let workspaces: Record<string, Workspace>;
-    let currentWorkspace: string;
+    $: theme = "dark";
 
-    function getWorkspaces() {
-        browser.runtime.sendMessage({ action: "getWorkspaces" }).then((response) => {
+    const allWorkspace = {
+        name: "All",
+        cookieStoreId: undefined,
+    };
+
+    function getContainers() {
+        browser.runtime.sendMessage({ action: "getContainers" }).then((response) => {
             if (response) {
-                workspaces = response.workspaces;
+                containers = response.containers;
                 currentWorkspace = response.currentWorkspace;
+                containerTabs = response.containerTabs;
             } else {
-                console.error("Failed to get response for 'getWorkspaces' message");
+                console.error("Failed to get response for 'getContainers' message");
             }
         });
     }
 
-    function createWorkspace() {
-        showForm = false;
-        browser.runtime
-            .sendMessage({ action: "createWorkspace", name: newWorkspaceName })
-            .then(() => {});
-        getWorkspaces();
-        newWorkspaceName = "";
-    }
-
-    function focus(el: HTMLElement) {
-        el.focus();
-    }
-
-    onMount(getWorkspaces);
+    onMount(() => {
+        getContainers();
+        browser.storage.local.get("currentTheme").then((data) => {
+            if (data.currentTheme == "auto") {
+                if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+                    theme = "dark";
+                } else {
+                    theme = "light";
+                }
+            } else if (data.currentTheme) {
+                theme = data.currentTheme;
+            }
+        });
+    });
 </script>
 
-<main>
+<main data-theme={theme}>
     <div>
-        {#if currentWorkspace}
-            {#key currentWorkspace}
-                {#each Object.entries(workspaces) as [workspace, _]}
-                    <WorkspaceItem
-                        {workspace}
-                        {getWorkspaces}
-                        active={currentWorkspace === workspace}
-                    />
-                    {#if workspace === "default"}
-                        <hr />
-                    {/if}
-                {/each}
-            {/key}
-        {/if}
-    </div>
-    <div>
-        {#if !showForm}
-            <button
-                on:click={() => {
-                    showForm = true;
-                }}
-                class="btn">New Workspace</button
-            >
-        {:else}
-            <div>
-                <input
-                    type="text"
-                    placeholder="New Workspace"
-                    bind:value={newWorkspaceName}
-                    use:focus
-                />
-                <button on:click={createWorkspace} class="btn">Create</button>
-                <button on:click={() => (showForm = false)} class="btn">Cancel</button>
-            </div>
-        {/if}
+        <WorkspaceItem
+            container={allWorkspace}
+            active={currentWorkspace == allWorkspace.cookieStoreId}
+            {getContainers}
+            tabCount={totalTabs}
+        />
+        {#each containers as container}
+            <WorkspaceItem
+                {container}
+                active={currentWorkspace == container.cookieStoreId}
+                {getContainers}
+                tabCount={containerTabs[container.name]}
+            />
+        {/each}
     </div>
 </main>
 
@@ -84,8 +71,6 @@
         min-width: 20rem;
         font-family: sans-serif;
         font-size: 0.9rem;
-        background-color: var(--bg);
-        color: white;
         padding: 0.25rem;
     }
 </style>
