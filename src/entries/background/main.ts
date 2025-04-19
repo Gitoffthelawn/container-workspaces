@@ -3,46 +3,29 @@ import { App } from "./App";
 
 let app = new App();
 app.loadFromStorage();
-// app.createContextMenu();
+app.createContextMenu();
 
-// browser.contextMenus.onClicked.addListener((info) => {
-// 	if (info.menuItemId.toString().startsWith("move-to-")) {
-// 		let workspace = info.menuItemId.toString().replace("move-to-", "");
-// 		app.moveSelectedTabsToWorkspace(workspace);
-// 	}
-//
-// 	if (info.menuItemId === "create-workspace-with-tabs") {
-// 		browser.tabs.query({ active: true }).then((tabs) => {
-// 			if (tabs[0] && tabs[0].id) {
-// 				browser.tabs
-// 					.sendMessage(tabs[0].id, { action: "getNewWorkspaceName" })
-// 					.then((response) => {
-// 						if (response.workspace) {
-// 							browser.windows.getLastFocused().then((window) => {
-// 								if (window.id) {
-// 									browser.windows
-// 										.update(window.id, { focused: true })
-// 										.then(() => {
-// 											app.createWorkspace(response.workspace);
-// 											app.moveSelectedTabsToWorkspace(response.workspace);
-// 										});
-// 								}
-// 							});
-// 						}
-// 					})
-// 					.catch(() => {
-// 						console.error("Unable to create dialog in currently focused tab.");
-// 					});
-// 			}
-// 		});
-// 		// browser.windows.create({
-// 		//   type: "detached_panel",
-// 		//   url: browser.runtime.getURL("src/entries/panel/index.html"),
-// 		//   width: 200,
-// 		//   height: 150,
-// 		// });
-// 	}
-// });
+browser.contextMenus.onClicked.addListener((info) => {
+	if (info.menuItemId.toString().startsWith("switch-to-")) {
+		let cookieStoreId = info.menuItemId.toString().replace("switch-to-", "");
+		if (cookieStoreId == "all") {
+			app.switchWorkspace(undefined);
+		} else {
+			app.switchWorkspace(cookieStoreId);
+		}
+	}
+
+	if (info.menuItemId.toString().startsWith("move-to-")) {
+		let cookieStoreId = info.menuItemId.toString().replace("move-to-", "");
+		app.moveSelectedTabsToWorkspace(cookieStoreId);
+	}
+
+	app.createContextMenu();
+});
+
+browser.tabs.onHighlighted.addListener(() => {
+	app.createContextMenu();
+});
 
 browser.runtime.onMessage.addListener(async (message) => {
 	switch (message.action) {
@@ -50,12 +33,14 @@ browser.runtime.onMessage.addListener(async (message) => {
 			app.switchWorkspace(message.name);
 			break;
 		}
+
 		case "getContainers": {
 			const defaultContainer: browser.ContextualIdentities.ContextualIdentity =
 				{
 					name: "Default",
 					cookieStoreId: "firefox-default",
 				};
+
 			let containers = await browser.contextualIdentities.query({});
 			containers.unshift(defaultContainer);
 			const tabs = await browser.tabs.query({});

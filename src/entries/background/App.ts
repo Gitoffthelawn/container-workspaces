@@ -41,6 +41,18 @@ export class App {
 		});
 	}
 
+	getMostRecentTab(tabs: browser.Tabs.Tab[]): browser.Tabs.Tab {
+		return tabs.reduce((mostRecent, current) => {
+			if (!current.lastAccessed || !mostRecent.lastAccessed) {
+				return mostRecent;
+			}
+			if (!mostRecent || current.lastAccessed > mostRecent.lastAccessed) {
+				return current;
+			}
+			return mostRecent;
+		}, tabs[0]);
+	}
+
 	switchWorkspace(cookieStoreId: string | undefined) {
 		// Handle selecting an active tab when switching workspaces
 		browser.tabs.query({ active: true }).then((activeTabs) => {
@@ -56,15 +68,7 @@ export class App {
 				}
 
 				if (tabs.length > 0) {
-					const mostRecentTab = tabs.reduce((mostRecent, current) => {
-						if (!current.lastAccessed || !mostRecent.lastAccessed) {
-							return mostRecent;
-						}
-						if (!mostRecent || current.lastAccessed > mostRecent.lastAccessed) {
-							return current;
-						}
-						return mostRecent;
-					}, tabs[0]);
+					const mostRecentTab = this.getMostRecentTab(tabs);
 
 					browser.tabs
 						.update(mostRecentTab.id, {
@@ -82,15 +86,106 @@ export class App {
 
 		this.currentWorkspace = cookieStoreId;
 		this.saveWorkspaces();
+		this.createContextMenu();
 	}
 
-	openTabInCurrentWorkspace(tab: browser.Tabs.Tab) {
-		browser.tabs
-			.update(tab.id, {
-				active: true,
-			})
-			.then(() => {
-				this.updateTabs();
+	moveSelectedTabsToWorkspace(cookieStoreId: string | undefined) {
+		browser.tabs.query({ highlighted: true }).then((selectedTabs) => {
+			selectedTabs.forEach((tab) => {
+				browser.tabs.create({
+					url: tab.url,
+					cookieStoreId: cookieStoreId,
+				});
 			});
+
+			browser.tabs
+				.query({ cookieStoreId: this.currentWorkspace })
+				.then((containerTabs) => {
+					const remainingTabs = containerTabs.filter(
+						(tab) => !selectedTabs.map((t) => t.id).includes(tab.id),
+					);
+					const mostRecentTab = this.getMostRecentTab(remainingTabs);
+					browser.tabs.update(mostRecentTab.id, { active: true });
+
+					browser.tabs.remove(selectedTabs.map((t) => t.id || 0));
+					this.updateTabs();
+				});
+		});
+	}
+
+	createContextMenu() {
+		browser.contextualIdentities.query({}).then((contextIds) => {
+			browser.tabs.query({ highlighted: true }).then((selectedTabs) => {
+				// Clear existing context menus
+				browser.contextMenus.removeAll();
+
+				browser.contextMenus.create({
+					id: "switch-to-workspace",
+					title: "Switch to workspace",
+					contexts: ["tab", "page"],
+				});
+
+				browser.contextMenus.create({
+					id: `switch-to-all`,
+					parentId: "switch-to-workspace",
+					title: "All",
+					contexts: ["tab", "page"],
+				});
+
+				if (this.currentWorkspace != "firefox-default") {
+					browser.contextMenus.create({
+						id: `switch-to-firefox-default`,
+						parentId: "switch-to-workspace",
+						title: "Default",
+						contexts: ["tab", "page"],
+					});
+				}
+				for (const contextId of contextIds) {
+					if (contextId.cookieStoreId == this.currentWorkspace) {
+						continue;
+					}
+
+					browser.contextMenus.create({
+						id: `switch-to-${contextId.cookieStoreId}`,
+						parentId: "switch-to-workspace",
+						title: contextId.name,
+						contexts: ["tab", "page"],
+					});
+				}
+
+				browser.contextMenus.create({
+					id: "move-to-workspace",
+					title:
+						selectedTabs.length > 1
+							? "Move tabs to workspace"
+							: "Move tab to workspace",
+					contexts: ["tab"],
+				});
+
+				if (this.currentWorkspace) {
+					browser.contextMenus.create({
+						id: `move-to-firefox-default`,
+						parentId: "move-to-workspace",
+						title: "Default",
+						contexts: ["tab", "page"],
+					});
+				}
+
+				for (const contextId of contextIds) {
+					if (contextId.cookieStoreId == this.currentWorkspace) {
+						continue;
+					}
+
+					if (this.currentWorkspace != contextId.cookieStoreId) {
+						browser.contextMenus.create({
+							id: `move-to-${contextId.cookieStoreId}`,
+							parentId: "move-to-workspace",
+							title: contextId.name,
+							contexts: ["tab"],
+						});
+					}
+				}
+			});
+		});
 	}
 }
