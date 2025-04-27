@@ -23,22 +23,28 @@ export class App {
 	}
 
 	updateTabs() {
+		let hideTabs: number[] = [];
+		let showTabs: number[] = [];
+
 		browser.tabs.query({}).then((tabs) => {
 			tabs.forEach((t) => {
 				if (t.id) {
 					if (!this.currentWorkspace) {
-						browser.tabs.show(t.id);
+						showTabs.push(t.id);
 						return;
 					}
 
 					if (t.cookieStoreId === this.currentWorkspace) {
-						browser.tabs.show(t.id);
+						showTabs.push(t.id);
 					} else {
-						browser.tabs.hide(t.id);
+						hideTabs.push(t.id);
 					}
 				}
 			});
 		});
+
+		browser.tabs.show(showTabs);
+		browser.tabs.hide(hideTabs);
 	}
 
 	getMostRecentTab(tabs: browser.Tabs.Tab[]): browser.Tabs.Tab {
