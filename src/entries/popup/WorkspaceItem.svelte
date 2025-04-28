@@ -7,11 +7,17 @@
     export let getContainers: () => void;
 
     function switchWorkspace() {
-        browser.runtime
-            .sendMessage({ action: "switchWorkspace", name: container.cookieStoreId })
-            .then(() => {
-                getContainers();
-            });
+        browser.windows.getCurrent().then((currentWindow) => {
+            browser.runtime
+                .sendMessage({
+                    action: "switchWorkspace",
+                    workspace: container.cookieStoreId,
+                    windowId: currentWindow.id,
+                })
+                .then(() => {
+                    getContainers();
+                });
+        });
     }
 </script>
 

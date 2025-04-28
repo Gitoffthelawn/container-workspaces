@@ -1,6 +1,6 @@
 {
 	"name": "workspaces",
-	"version": "1.0.5",
+	"version": "1.0.6",
 	"displayName": "Container Workspaces",
 	"author": "Mike Lloyd",
 	"description": "Manage container tabs in workspaces",

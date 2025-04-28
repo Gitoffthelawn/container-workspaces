@@ -1,50 +1,85 @@
 import browser from "webextension-polyfill";
 
 export class App {
-	currentWorkspace: string | undefined;
+	windowWorkspaces: Map<number, string | null>;
 
 	constructor() {
-		this.currentWorkspace = undefined;
+		this.windowWorkspaces = new Map();
 	}
 
-	// Loads the workspace states from browser storage
 	loadFromStorage() {
-		browser.storage.local.get(["currentWorkspace"]).then((data) => {
-			this.currentWorkspace = data.currentWorkspace;
+		browser.storage.local.get(["windowWorkspaces"]).then((data) => {
+			this.windowWorkspaces = new Map();
+			if (data.windowWorkspaces) {
+				Object.entries(data.windowWorkspaces).forEach(([k, v]) => {
+					let windowId = parseInt(k, 10);
+					this.windowWorkspaces.set(windowId, v.toString());
+				});
+			}
 
-			this.updateTabs();
+			browser.windows.getAll().then((windows) => {
+				windows.forEach((window) => {
+					if (window.id) {
+						this.updateWindowTabs(window.id);
+					}
+				});
+			});
 		});
 	}
 
 	saveWorkspaces() {
+		let workspacesData = {};
+		for (let [k, v] of this.windowWorkspaces.entries()) {
+			workspacesData[k] = v;
+		}
+
 		browser.storage.local.set({
-			currentWorkspace: this.currentWorkspace,
+			windowWorkspaces: workspacesData,
 		});
 	}
 
-	updateTabs() {
+	updateWindows() {
+		browser.windows.getAll().then((windows) => {
+			windows.forEach((window) => {
+				if (window.id && !this.windowWorkspaces.has(window.id)) {
+					this.windowWorkspaces.set(window.id, null);
+				}
+			});
+
+			for (const key of this.windowWorkspaces.keys()) {
+				if (!windows.map((w) => w.id).includes(key)) {
+					this.windowWorkspaces.delete(key);
+				}
+			}
+			this.saveWorkspaces();
+		});
+	}
+
+	updateWindowTabs(windowId: number) {
+		const currentWorkspace = this.windowWorkspaces.get(windowId);
+
 		let hideTabs: number[] = [];
 		let showTabs: number[] = [];
 
-		browser.tabs.query({}).then((tabs) => {
-			tabs.forEach((t) => {
-				if (t.id) {
-					if (!this.currentWorkspace) {
-						showTabs.push(t.id);
+		browser.tabs.query({ windowId }).then((tabs) => {
+			tabs.forEach((tab) => {
+				if (tab.id) {
+					if (!currentWorkspace) {
+						showTabs.push(tab.id);
 						return;
 					}
 
-					if (t.cookieStoreId === this.currentWorkspace) {
-						showTabs.push(t.id);
+					if (tab.cookieStoreId == currentWorkspace) {
+						showTabs.push(tab.id);
 					} else {
-						hideTabs.push(t.id);
+						hideTabs.push(tab.id);
 					}
 				}
 			});
-		});
 
-		browser.tabs.show(showTabs);
-		browser.tabs.hide(hideTabs);
+			browser.tabs.show(showTabs);
+			browser.tabs.hide(hideTabs);
+		});
 	}
 
 	getMostRecentTab(tabs: browser.Tabs.Tab[]): browser.Tabs.Tab {
@@ -59,138 +94,162 @@ export class App {
 		}, tabs[0]);
 	}
 
-	switchWorkspace(cookieStoreId: string | undefined) {
+	switchWindowWorkspace(windowId: number, cookieStoreId: string | null) {
 		// Handle selecting an active tab when switching workspaces
-		browser.tabs.query({ active: true }).then((activeTabs) => {
-			browser.tabs.query({ cookieStoreId: cookieStoreId }).then((tabs) => {
-				// No need to select a tab when unsetting a workspace or if the current active tab is already in the newly selected workspace
-				if (
-					!cookieStoreId ||
-					(activeTabs.length > 0 &&
-						activeTabs[0].cookieStoreId == cookieStoreId)
-				) {
-					this.updateTabs();
-					return;
-				}
+		browser.tabs.query({ windowId, active: true }).then((activeTabs) => {
+			browser.tabs
+				.query({ windowId, cookieStoreId: cookieStoreId ?? undefined })
+				.then((tabs) => {
+					// No need to select a tab when unsetting a workspace or if the current active tab is already in the newly selected workspace
+					if (
+						!cookieStoreId ||
+						(activeTabs.length > 0 &&
+							activeTabs[0].cookieStoreId == cookieStoreId)
+					) {
+						this.updateWindowTabs(windowId);
+						return;
+					}
 
-				if (tabs.length > 0) {
-					const mostRecentTab = this.getMostRecentTab(tabs);
+					if (tabs.length > 0) {
+						const mostRecentTab = this.getMostRecentTab(tabs);
 
-					browser.tabs
-						.update(mostRecentTab.id, {
-							active: true,
-						})
-						.then(() => {
-							this.updateTabs();
-						});
-				} else {
-					browser.tabs.create({ cookieStoreId });
-					this.updateTabs();
-				}
-			});
+						browser.tabs
+							.update(mostRecentTab.id, {
+								active: true,
+							})
+							.then(() => {
+								this.updateWindowTabs(windowId);
+							});
+					} else {
+						browser.tabs.create({ cookieStoreId, windowId });
+						this.updateWindowTabs(windowId);
+					}
+				});
 		});
 
-		this.currentWorkspace = cookieStoreId;
+		this.windowWorkspaces.set(windowId, cookieStoreId);
 		this.saveWorkspaces();
 		this.createContextMenu();
 	}
 
-	moveSelectedTabsToWorkspace(cookieStoreId: string | undefined) {
+	moveSelectedTabsToWorkspace(cookieStoreId: string | null) {
 		browser.tabs.query({ highlighted: true }).then((selectedTabs) => {
 			selectedTabs.forEach((tab) => {
 				browser.tabs.create({
 					url: tab.url,
-					cookieStoreId: cookieStoreId,
+					cookieStoreId: cookieStoreId ?? undefined,
+					windowId: tab.windowId,
 				});
 			});
 
-			browser.tabs
-				.query({ cookieStoreId: this.currentWorkspace })
-				.then((containerTabs) => {
-					const remainingTabs = containerTabs.filter(
-						(tab) => !selectedTabs.map((t) => t.id).includes(tab.id),
-					);
-					const mostRecentTab = this.getMostRecentTab(remainingTabs);
-					browser.tabs.update(mostRecentTab.id, { active: true });
+			browser.windows.getCurrent().then((currentWindow) => {
+				if (!currentWindow.id) {
+					return;
+				}
 
-					browser.tabs.remove(selectedTabs.map((t) => t.id || 0));
-					this.updateTabs();
-				});
+				const currentWorkspace = this.windowWorkspaces.get(currentWindow.id);
+
+				browser.tabs
+					.query({ cookieStoreId: currentWorkspace ?? undefined })
+					.then((containerTabs) => {
+						const remainingTabs = containerTabs.filter(
+							(tab) => !selectedTabs.map((t) => t.id).includes(tab.id),
+						);
+						const mostRecentTab = this.getMostRecentTab(remainingTabs);
+						browser.tabs.update(mostRecentTab.id, { active: true });
+
+						browser.tabs.remove(
+							selectedTabs.filter((t) => t.id != undefined).map((t) => t.id!),
+						);
+
+						if (currentWindow.id) {
+							this.updateWindowTabs(currentWindow.id);
+						}
+					});
+			});
 		});
 	}
 
 	createContextMenu() {
-		browser.contextualIdentities.query({}).then((contextIds) => {
-			browser.tabs.query({ highlighted: true }).then((selectedTabs) => {
-				// Clear existing context menus
-				browser.contextMenus.removeAll();
+		browser.windows.getCurrent().then((currentWindow) => {
+			if (!currentWindow.id) {
+				return;
+			}
 
-				browser.contextMenus.create({
-					id: "switch-to-workspace",
-					title: "Switch to workspace",
-					contexts: ["tab", "page"],
-				});
+			const currentWorkspace = this.windowWorkspaces.get(currentWindow.id);
 
-				browser.contextMenus.create({
-					id: `switch-to-all`,
-					parentId: "switch-to-workspace",
-					title: "All",
-					contexts: ["tab", "page"],
-				});
+			browser.contextualIdentities.query({}).then((contextIds) => {
+				browser.tabs.query({ highlighted: true }).then((selectedTabs) => {
+					// Clear existing context menus
+					browser.contextMenus.removeAll();
 
-				if (this.currentWorkspace != "firefox-default") {
 					browser.contextMenus.create({
-						id: `switch-to-firefox-default`,
+						id: "switch-to-workspace",
+						title: "Switch to workspace",
+						contexts: ["tab", "page"],
+					});
+
+					browser.contextMenus.create({
+						id: `switch-to-all`,
 						parentId: "switch-to-workspace",
-						title: "Default",
+						title: "All",
 						contexts: ["tab", "page"],
 					});
-				}
-				for (const contextId of contextIds) {
-					if (contextId.cookieStoreId == this.currentWorkspace) {
-						continue;
-					}
 
-					browser.contextMenus.create({
-						id: `switch-to-${contextId.cookieStoreId}`,
-						parentId: "switch-to-workspace",
-						title: contextId.name,
-						contexts: ["tab", "page"],
-					});
-				}
-
-				browser.contextMenus.create({
-					id: "move-to-workspace",
-					title:
-						selectedTabs.length > 1
-							? "Move tabs to workspace"
-							: "Move tab to workspace",
-					contexts: ["tab"],
-				});
-
-				if (this.currentWorkspace) {
-					browser.contextMenus.create({
-						id: `move-to-firefox-default`,
-						parentId: "move-to-workspace",
-						title: "Default",
-						contexts: ["tab", "page"],
-					});
-				}
-
-				for (const contextId of contextIds) {
-					if (contextId.cookieStoreId == this.currentWorkspace) {
-						continue;
-					}
-
-					if (this.currentWorkspace != contextId.cookieStoreId) {
+					if (currentWorkspace != "firefox-default") {
 						browser.contextMenus.create({
-							id: `move-to-${contextId.cookieStoreId}`,
-							parentId: "move-to-workspace",
-							title: contextId.name,
-							contexts: ["tab"],
+							id: `switch-to-firefox-default`,
+							parentId: "switch-to-workspace",
+							title: "Default",
+							contexts: ["tab", "page"],
 						});
 					}
-				}
+					for (const contextId of contextIds) {
+						if (contextId.cookieStoreId == currentWorkspace) {
+							continue;
+						}
+
+						browser.contextMenus.create({
+							id: `switch-to-${contextId.cookieStoreId}`,
+							parentId: "switch-to-workspace",
+							title: contextId.name,
+							contexts: ["tab", "page"],
+						});
+					}
+
+					browser.contextMenus.create({
+						id: "move-to-workspace",
+						title:
+							selectedTabs.length > 1
+								? "Move tabs to workspace"
+								: "Move tab to workspace",
+						contexts: ["tab"],
+					});
+
+					if (currentWorkspace) {
+						browser.contextMenus.create({
+							id: `move-to-firefox-default`,
+							parentId: "move-to-workspace",
+							title: "Default",
+							contexts: ["tab", "page"],
+						});
+					}
+
+					for (const contextId of contextIds) {
+						if (contextId.cookieStoreId == currentWorkspace) {
+							continue;
+						}
+
+						if (currentWorkspace != contextId.cookieStoreId) {
+							browser.contextMenus.create({
+								id: `move-to-${contextId.cookieStoreId}`,
+								parentId: "move-to-workspace",
+								title: contextId.name,
+								contexts: ["tab"],
+							});
+						}
+					}
+				});
 			});
 		});
 	}

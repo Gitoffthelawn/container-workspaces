@@ -3,24 +3,31 @@ import { App } from "./App";
 
 let app = new App();
 app.loadFromStorage();
+app.updateWindows();
 app.createContextMenu();
 
 browser.contextMenus.onClicked.addListener((info) => {
-	if (info.menuItemId.toString().startsWith("switch-to-")) {
-		let cookieStoreId = info.menuItemId.toString().replace("switch-to-", "");
-		if (cookieStoreId == "all") {
-			app.switchWorkspace(undefined);
-		} else {
-			app.switchWorkspace(cookieStoreId);
+	browser.windows.getCurrent().then((currentWindow) => {
+		if (!currentWindow.id) {
+			return;
 		}
-	}
 
-	if (info.menuItemId.toString().startsWith("move-to-")) {
-		let cookieStoreId = info.menuItemId.toString().replace("move-to-", "");
-		app.moveSelectedTabsToWorkspace(cookieStoreId);
-	}
+		if (info.menuItemId.toString().startsWith("switch-to-")) {
+			let cookieStoreId = info.menuItemId.toString().replace("switch-to-", "");
+			if (cookieStoreId == "all") {
+				app.switchWindowWorkspace(currentWindow.id, null);
+			} else {
+				app.switchWindowWorkspace(currentWindow.id, cookieStoreId);
+			}
+		}
 
-	app.createContextMenu();
+		if (info.menuItemId.toString().startsWith("move-to-")) {
+			let cookieStoreId = info.menuItemId.toString().replace("move-to-", "");
+			app.moveSelectedTabsToWorkspace(cookieStoreId);
+		}
+
+		app.createContextMenu();
+	});
 });
 
 browser.tabs.onHighlighted.addListener(() => {
@@ -30,7 +37,7 @@ browser.tabs.onHighlighted.addListener(() => {
 browser.runtime.onMessage.addListener(async (message) => {
 	switch (message.action) {
 		case "switchWorkspace": {
-			app.switchWorkspace(message.name);
+			app.switchWindowWorkspace(message.windowId, message.workspace);
 			break;
 		}
 
@@ -43,7 +50,8 @@ browser.runtime.onMessage.addListener(async (message) => {
 
 			let containers = await browser.contextualIdentities.query({});
 			containers.unshift(defaultContainer);
-			const tabs = await browser.tabs.query({});
+
+			const tabs = await browser.tabs.query({ windowId: message.windowId });
 			const containerTabs: Record<string, number> = {};
 			containers.forEach((c) => {
 				const tabCount = tabs.filter(
@@ -54,7 +62,7 @@ browser.runtime.onMessage.addListener(async (message) => {
 
 			return await Promise.resolve({
 				containers,
-				currentWorkspace: app.currentWorkspace,
+				currentWorkspace: app.windowWorkspaces.get(message.windowId),
 				containerTabs,
 			});
 		}
@@ -63,24 +71,43 @@ browser.runtime.onMessage.addListener(async (message) => {
 });
 
 browser.tabs.onCreated.addListener((tab) => {
-	if (app.currentWorkspace && tab.cookieStoreId != app.currentWorkspace) {
+	if (!tab.windowId) {
+		return;
+	}
+
+	const currentWorkspace = app.windowWorkspaces.get(tab.windowId);
+
+	if (currentWorkspace && tab.cookieStoreId != currentWorkspace) {
 		if (tab.id && tab.title == "New Tab") {
 			browser.tabs.create({
-				cookieStoreId: app.currentWorkspace,
+				cookieStoreId: currentWorkspace,
+				windowId: tab.windowId,
+				url: tab.url,
 			});
 			browser.tabs.remove(tab.id);
 		}
 	}
-	app.updateTabs();
+
+	app.updateWindowTabs(tab.windowId);
 });
 
-browser.tabs.onRemoved.addListener(() => {
-	if (app.currentWorkspace) {
-		browser.tabs.query({ cookieStoreId: app.currentWorkspace }).then((tabs) => {
+browser.tabs.onRemoved.addListener((_, removeInfo) => {
+	const currentWorkspace = app.windowWorkspaces.get(removeInfo.windowId);
+
+	if (currentWorkspace) {
+		browser.tabs.query({ cookieStoreId: currentWorkspace }).then((tabs) => {
 			if (tabs.length == 0) {
-				app.currentWorkspace = "firefox-default";
-				app.updateTabs();
+				app.windowWorkspaces.set(removeInfo.windowId, "firefox-default");
+				app.updateWindowTabs(removeInfo.windowId);
 			}
 		});
 	}
+});
+
+browser.windows.onCreated.addListener(() => {
+	app.updateWindows();
+});
+
+browser.windows.onRemoved.addListener(() => {
+	app.updateWindows();
 });

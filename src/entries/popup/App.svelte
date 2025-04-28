@@ -14,18 +14,22 @@
 
     const allWorkspace = {
         name: "All",
-        cookieStoreId: undefined,
+        cookieStoreId: null,
     };
 
     function getContainers() {
-        browser.runtime.sendMessage({ action: "getContainers" }).then((response) => {
-            if (response) {
-                containers = response.containers;
-                currentWorkspace = response.currentWorkspace;
-                containerTabs = response.containerTabs;
-            } else {
-                console.error("Failed to get response for 'getContainers' message");
-            }
+        browser.windows.getCurrent().then((currentWindow) => {
+            browser.runtime
+                .sendMessage({ action: "getContainers", windowId: currentWindow.id })
+                .then((response) => {
+                    if (response) {
+                        containers = response.containers;
+                        currentWorkspace = response.currentWorkspace;
+                        containerTabs = response.containerTabs;
+                    } else {
+                        console.error("Failed to get response for 'getContainers' message");
+                    }
+                });
         });
     }
 
