@@ -12,8 +12,10 @@ browser.contextMenus.onClicked.addListener((info) => {
 			return;
 		}
 
-		if (info.menuItemId.toString().startsWith("switch-to-")) {
-			let cookieStoreId = info.menuItemId.toString().replace("switch-to-", "");
+		const menuItem = info.menuItemId.toString();
+
+		if (menuItem.startsWith("switch-to-")) {
+			let cookieStoreId = menuItem.replace("switch-to-", "");
 			if (cookieStoreId == "all") {
 				app.switchWindowWorkspace(currentWindow.id, null);
 			} else {
@@ -21,8 +23,8 @@ browser.contextMenus.onClicked.addListener((info) => {
 			}
 		}
 
-		if (info.menuItemId.toString().startsWith("move-to-")) {
-			let cookieStoreId = info.menuItemId.toString().replace("move-to-", "");
+		if (menuItem.startsWith("move-to-")) {
+			let cookieStoreId = menuItem.replace("move-to-", "");
 			app.moveSelectedTabsToWorkspace(cookieStoreId);
 		}
 
@@ -82,7 +84,6 @@ browser.tabs.onCreated.addListener((tab) => {
 			browser.tabs.create({
 				cookieStoreId: currentWorkspace,
 				windowId: tab.windowId,
-				url: tab.url,
 			});
 			browser.tabs.remove(tab.id);
 		}
@@ -110,4 +111,8 @@ browser.windows.onCreated.addListener(() => {
 
 browser.windows.onRemoved.addListener(() => {
 	app.updateWindows();
+});
+
+browser.windows.onFocusChanged.addListener(() => {
+	app.createContextMenu();
 });

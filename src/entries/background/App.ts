@@ -133,40 +133,52 @@ export class App {
 	}
 
 	moveSelectedTabsToWorkspace(cookieStoreId: string | null) {
-		browser.tabs.query({ highlighted: true }).then((selectedTabs) => {
-			selectedTabs.forEach((tab) => {
-				browser.tabs.create({
-					url: tab.url,
-					cookieStoreId: cookieStoreId ?? undefined,
-					windowId: tab.windowId,
-				});
-			});
+		browser.windows.getCurrent().then((currentWindow) => {
+			if (!currentWindow.id) {
+				return;
+			}
+			const currentWorkspace = this.windowWorkspaces.get(currentWindow.id);
 
-			browser.windows.getCurrent().then((currentWindow) => {
-				if (!currentWindow.id) {
-					return;
-				}
-
-				const currentWorkspace = this.windowWorkspaces.get(currentWindow.id);
-
-				browser.tabs
-					.query({ cookieStoreId: currentWorkspace ?? undefined })
-					.then((containerTabs) => {
-						const remainingTabs = containerTabs.filter(
-							(tab) => !selectedTabs.map((t) => t.id).includes(tab.id),
-						);
-						const mostRecentTab = this.getMostRecentTab(remainingTabs);
-						browser.tabs.update(mostRecentTab.id, { active: true });
-
-						browser.tabs.remove(
-							selectedTabs.filter((t) => t.id != undefined).map((t) => t.id!),
-						);
-
-						if (currentWindow.id) {
-							this.updateWindowTabs(currentWindow.id);
-						}
+			browser.tabs
+				.query({ windowId: currentWindow.id, highlighted: true })
+				.then((selectedTabs) => {
+					selectedTabs.forEach((tab) => {
+						browser.tabs.create({
+							url: tab.url,
+							cookieStoreId: cookieStoreId ?? undefined,
+							windowId: tab.windowId,
+						});
 					});
-			});
+
+					browser.tabs
+						.query({
+							windowId: currentWindow.id,
+							cookieStoreId: currentWorkspace ?? undefined,
+						})
+						.then((containerTabs) => {
+							const remainingTabs = containerTabs.filter(
+								(tab) => !selectedTabs.map((t) => t.id).includes(tab.id),
+							);
+
+							if (remainingTabs.length == 0) {
+								browser.tabs.create({
+									cookieStoreId: cookieStoreId ?? undefined,
+									windowId: currentWindow.id,
+								});
+							} else {
+								const mostRecentTab = this.getMostRecentTab(remainingTabs);
+								browser.tabs.update(mostRecentTab.id, { active: true });
+							}
+
+							browser.tabs.remove(
+								selectedTabs.filter((t) => t.id != undefined).map((t) => t.id!),
+							);
+
+							if (currentWindow.id) {
+								this.updateWindowTabs(currentWindow.id);
+							}
+						});
+				});
 		});
 	}
 
@@ -179,77 +191,79 @@ export class App {
 			const currentWorkspace = this.windowWorkspaces.get(currentWindow.id);
 
 			browser.contextualIdentities.query({}).then((contextIds) => {
-				browser.tabs.query({ highlighted: true }).then((selectedTabs) => {
-					// Clear existing context menus
-					browser.contextMenus.removeAll();
+				browser.tabs
+					.query({ windowId: currentWindow.id, highlighted: true })
+					.then((selectedTabs) => {
+						// Clear existing context menus
+						browser.contextMenus.removeAll();
 
-					browser.contextMenus.create({
-						id: "switch-to-workspace",
-						title: "Switch to workspace",
-						contexts: ["tab", "page"],
-					});
-
-					browser.contextMenus.create({
-						id: `switch-to-all`,
-						parentId: "switch-to-workspace",
-						title: "All",
-						contexts: ["tab", "page"],
-					});
-
-					if (currentWorkspace != "firefox-default") {
 						browser.contextMenus.create({
-							id: `switch-to-firefox-default`,
+							id: "switch-to-workspace",
+							title: "Switch to workspace",
+							contexts: ["tab", "page"],
+						});
+
+						browser.contextMenus.create({
+							id: `switch-to-all`,
 							parentId: "switch-to-workspace",
-							title: "Default",
+							title: "All",
 							contexts: ["tab", "page"],
 						});
-					}
-					for (const contextId of contextIds) {
-						if (contextId.cookieStoreId == currentWorkspace) {
-							continue;
-						}
 
-						browser.contextMenus.create({
-							id: `switch-to-${contextId.cookieStoreId}`,
-							parentId: "switch-to-workspace",
-							title: contextId.name,
-							contexts: ["tab", "page"],
-						});
-					}
-
-					browser.contextMenus.create({
-						id: "move-to-workspace",
-						title:
-							selectedTabs.length > 1
-								? "Move tabs to workspace"
-								: "Move tab to workspace",
-						contexts: ["tab"],
-					});
-
-					if (currentWorkspace) {
-						browser.contextMenus.create({
-							id: `move-to-firefox-default`,
-							parentId: "move-to-workspace",
-							title: "Default",
-							contexts: ["tab", "page"],
-						});
-					}
-
-					for (const contextId of contextIds) {
-						if (contextId.cookieStoreId == currentWorkspace) {
-							continue;
-						}
-
-						if (currentWorkspace != contextId.cookieStoreId) {
+						if (currentWorkspace != "firefox-default") {
 							browser.contextMenus.create({
-								id: `move-to-${contextId.cookieStoreId}`,
-								parentId: "move-to-workspace",
-								title: contextId.name,
-								contexts: ["tab"],
+								id: `switch-to-firefox-default`,
+								parentId: "switch-to-workspace",
+								title: "Default",
+								contexts: ["tab", "page"],
 							});
 						}
-					}
-				});
+						for (const contextId of contextIds) {
+							if (contextId.cookieStoreId == currentWorkspace) {
+								continue;
+							}
+
+							browser.contextMenus.create({
+								id: `switch-to-${contextId.cookieStoreId}`,
+								parentId: "switch-to-workspace",
+								title: contextId.name,
+								contexts: ["tab", "page"],
+							});
+						}
+
+						browser.contextMenus.create({
+							id: "move-to-workspace",
+							title:
+								selectedTabs.length > 1
+									? "Move tabs to workspace"
+									: "Move tab to workspace",
+							contexts: ["tab"],
+						});
+
+						if (currentWorkspace != "firefox-default") {
+							browser.contextMenus.create({
+								id: `move-to-firefox-default`,
+								parentId: "move-to-workspace",
+								title: "Default",
+								contexts: ["tab", "page"],
+							});
+						}
+
+						for (const contextId of contextIds) {
+							if (contextId.cookieStoreId == currentWorkspace) {
+								continue;
+							}
+
+							if (currentWorkspace != contextId.cookieStoreId) {
+								browser.contextMenus.create({
+									id: `move-to-${contextId.cookieStoreId}`,
+									parentId: "move-to-workspace",
+									title: contextId.name,
+									contexts: ["tab"],
+								});
+							}
+						}
+					});
 			});
 		});
 	}
