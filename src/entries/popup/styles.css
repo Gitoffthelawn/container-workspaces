@@ -1,5 +1,10 @@
 @import url("theme.css");
 
+body {
+	background-color: var(--bgColor);
+	margin: 0;
+}
+
 main {
 	background-color: var(--bgColor);
 	color: var(--text-color-primary);

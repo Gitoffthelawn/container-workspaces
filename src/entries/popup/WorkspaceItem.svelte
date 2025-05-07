@@ -1,5 +1,6 @@
 <script lang="ts">
     import browser from "webextension-polyfill";
+    import NewWindow from "./icons/NewWindow.svelte";
 
     export let container: browser.ContextualIdentities.ContextualIdentity;
     export let active: boolean;
@@ -19,11 +20,21 @@
                 });
         });
     }
+
+    function newWindowWithWorkspace() {
+        browser.runtime.sendMessage({
+            action: "newWindowWithWorkspace",
+            workspace: container.cookieStoreId,
+        });
+    }
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->
 <!-- svelte-ignore a11y-no-static-element-interactions -->
-<div on:click={switchWorkspace} class="workspace flex-centered {active ? 'active' : ''}">
+<div
+    on:click={switchWorkspace}
+    class="workspace flex-centered {active ? 'active' : ''} hide-parent"
+>
     {#if container.iconUrl}
         <img
             src={container.iconUrl}
@@ -35,6 +46,9 @@
     <span class="flex-grow">
         {container.name}
     </span>
+    <div class="button hide-child" on:click|stopPropagation={newWindowWithWorkspace}>
+        <NewWindow />
+    </div>
     <span>{tabCount}</span>
 </div>
 
@@ -75,6 +89,25 @@
     .workspace-icon {
         height: 18px;
         margin-right: 5px;
+    }
+
+    .button {
+        cursor: pointer;
+        border-radius: 0.25rem;
+        padding: 0.25rem 0.5rem;
+    }
+
+    .button:hover {
+        background-color: rgba(0, 0, 0, 0.25);
+    }
+
+    .hide-child {
+        opacity: 0;
+        transition: opacity 50ms;
+    }
+
+    .hide-parent:hover > .hide-child {
+        opacity: 100%;
     }
 
     /* These filters were generated with isotropic.co/tool/hex-color-to-css-filter/ */
@@ -121,5 +154,9 @@
     .icon-white {
         filter: invert(100%) sepia(0%) saturate(0%) hue-rotate(281deg) brightness(109%)
             contrast(102%);
+    }
+
+    .icon-gray {
+        filter: invert(62%) sepia(0%) saturate(0%) hue-rotate(183deg) brightness(87%) contrast(86%);
     }
 </style>

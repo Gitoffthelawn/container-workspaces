@@ -10,11 +10,11 @@
     $: containerTabs = {};
     $: totalTabs = Object.values(containerTabs).reduce((a, v) => a + v, 0);
 
-    $: theme = "dark";
-
     const allWorkspace = {
         name: "All",
         cookieStoreId: null,
+        icon: "all",
+        iconUrl: "/container-icons/browser.svg",
     };
 
     function getContainers() {
@@ -35,7 +35,10 @@
 
     onMount(() => {
         getContainers();
+
         browser.storage.local.get("currentTheme").then((data) => {
+            let theme = "auto";
+
             if (data.currentTheme == "auto") {
                 if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
                     theme = "dark";
@@ -45,18 +48,14 @@
             } else if (data.currentTheme) {
                 theme = data.currentTheme;
             }
+
+            document.body.setAttribute("data-theme", theme);
         });
     });
 </script>
 
-<main data-theme={theme}>
+<main>
     <div>
-        <WorkspaceItem
-            container={allWorkspace}
-            active={currentWorkspace == allWorkspace.cookieStoreId}
-            {getContainers}
-            tabCount={totalTabs}
-        />
         {#each containers as container}
             <WorkspaceItem
                 {container}
