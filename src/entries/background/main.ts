@@ -104,10 +104,11 @@ browser.tabs.onCreated.addListener((tab) => {
 	const currentWorkspace = app.windowWorkspaces.get(tab.windowId);
 
 	if (currentWorkspace && tab.cookieStoreId != currentWorkspace) {
-		if (tab.id && tab.title == "New Tab") {
+		if (tab.id) {
 			browser.tabs.create({
 				cookieStoreId: currentWorkspace,
 				windowId: tab.windowId,
+				url: tab.title == "New Tab" ? undefined : tab.url,
 			});
 			browser.tabs.remove(tab.id);
 		}
