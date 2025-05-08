@@ -1,71 +1,22 @@
-# workspaces-svelte
+# Container Workspaces
 
-This template should help get you started developing a svelte web extension in Vite.
+Simple Workspace Management Leveraging Firefox's Container Tabs
 
-## Usage Notes
+This extension brings focused organization to your Firefox experience by introducing workspaces that are linked to container tabs. Imagine having a dedicated workspace for your "Work" tabs, another for "Personal" browsing, and yet another for "Side Projects" – all within the same Firefox window.
 
-The extension manifest is defined in `src/manifest.js` and used by `@samrum/vite-plugin-web-extension` in the vite config.
+With Workspaces for Tab Containers, you can:
 
-Background, content scripts, options, and popup entry points exist in the `src/entries` directory.
+-   Isolate tabs by container: When you select a workspace, only the tabs belonging to its associated tab container type are visible in that window.
+-   Maintain focus: Reduce distractions by hiding irrelevant tabs, allowing you to concentrate on the task at hand.
+-   Window-specific workspaces: Each Firefox window can have a different workspace active, giving you ultimate flexibility in managing your browsing sessions.
+-   Easy workspace switching: Simply open the extension's popup to quickly select the workspace you want to activate in the current window.
 
-Content scripts are rendered by `src/entries/contentScript/renderContent.js` which renders content within a ShadowRoot
-and handles style injection for HMR and build modes.
+Stop searching through endless tabs! Container Workspaces provides a clean and efficient way to manage your different browsing contexts, helping you stay organized and productive.
 
-Otherwise, the project functions just like a regular Vite project.
+## Installation
 
-To switch between Manifest V2 and Manifest V3 builds, use the MANIFEST_VERSION environment variable defined in `.env`
+This extension is available on the [Mozilla Add-On store](https://addons.mozilla.org/en-US/firefox/addon/container-workspaces/).
 
-HMR during development in Manifest V3 requires Chromium version >= 110.0.5480.0.
+## Contributing
 
-Refer to [@samrum/vite-plugin-web-extension](https://github.com/samrum/vite-plugin-web-extension) for more usage notes.
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vitejs.dev/config/).
-
-## Project Setup
-
-```sh
-npm install
-```
-
-## Commands
-
-### Build
-
-#### Development, HMR
-
-Hot Module Reloading is used to load changes inline without requiring extension rebuilds and extension/page reloads
-Currently only works in Chromium based browsers.
-
-```sh
-npm run dev
-```
-
-#### Development, Watch
-
-Rebuilds extension on file changes. Requires a reload of the extension (and page reload if using content scripts)
-
-```sh
-npm run watch
-```
-
-#### Production
-
-Minifies and optimizes extension build
-
-```sh
-npm run build
-```
-
-### Load extension in browser
-
-Loads the contents of the dist directory into the specified browser
-
-```sh
-npm run serve:chrome
-```
-
-```sh
-npm run serve:firefox
-```
+Feel free to open an issue if you find a bug or have an idea. PRs are greatly appreciated.
