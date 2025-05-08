@@ -108,7 +108,7 @@ browser.tabs.onCreated.addListener((tab) => {
 			browser.tabs.create({
 				cookieStoreId: currentWorkspace,
 				windowId: tab.windowId,
-				url: tab.title == "New Tab" ? undefined : tab.url,
+				url: tab.url == "about:newtab" ? undefined : tab.url,
 			});
 			browser.tabs.remove(tab.id);
 		}
