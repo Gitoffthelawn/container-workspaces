@@ -1,5 +1,6 @@
 import browser from "webextension-polyfill";
 import { App } from "./App";
+import { isUrl, prependScheme } from "./utils";
 
 let app = new App();
 app.loadFromStorage();
@@ -97,6 +98,14 @@ browser.runtime.onMessage.addListener(async (message) => {
 });
 
 browser.tabs.onCreated.addListener((tab) => {
+	// Firefox is weird about new tabs sometimes. There are three ways a new tab is created:
+	// 1. User creates a new tab manually
+	//     Create a new blank tab in the correct container and close the old one
+	// 2. User opens the settings dialog or any Firefox tabs (about:config, about:preferences)
+	//     Ignore this tab. System tabs will always be shown
+	// 3. User opens a link from an external app
+	//     These tabs are opened with a url of "about:blank"
+
 	if (!tab.windowId) {
 		return;
 	}
@@ -105,12 +114,37 @@ browser.tabs.onCreated.addListener((tab) => {
 
 	if (currentWorkspace && tab.cookieStoreId != currentWorkspace) {
 		if (tab.id) {
-			browser.tabs.create({
-				cookieStoreId: currentWorkspace,
-				windowId: tab.windowId,
-				url: tab.url == "about:newtab" ? undefined : tab.url,
-			});
-			browser.tabs.remove(tab.id);
+			// Firefox settings tab or external tab
+			if (!tab.openerTabId) {
+				if (tab.url == "about:newtab") {
+					browser.tabs.create({
+						cookieStoreId: currentWorkspace,
+						windowId: tab.windowId,
+						index: tab.index,
+						active: tab.active,
+					});
+					browser.tabs.remove(tab.id);
+				} else if (tab.title && isUrl(tab.title)) {
+					browser.tabs.create({
+						cookieStoreId: currentWorkspace,
+						windowId: tab.windowId,
+						index: tab.index,
+						active: tab.active,
+						url: prependScheme(tab.title),
+					});
+					browser.tabs.remove(tab.id);
+					browser.runtime.getManifest;
+				}
+			} else {
+				browser.tabs.create({
+					cookieStoreId: currentWorkspace,
+					windowId: tab.windowId,
+					url: tab.url,
+					index: tab.index,
+					active: tab.active,
+				});
+				browser.tabs.remove(tab.id);
+			}
 		}
 	}
 

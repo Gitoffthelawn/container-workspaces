@@ -64,6 +64,12 @@ export class App {
 		browser.tabs.query({ windowId }).then((tabs) => {
 			tabs.forEach((tab) => {
 				if (tab.id) {
+					// System tabs are always shown
+					if (tab.url?.startsWith("about:") && tab.url != "about:newtab") {
+						showTabs.push(tab.id);
+						return;
+					}
+
 					if (!currentWorkspace) {
 						showTabs.push(tab.id);
 						return;
